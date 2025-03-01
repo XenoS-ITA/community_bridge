@@ -11,7 +11,7 @@ detectDebugEnabled()
 
 local targetZones = {}
 
-Target = {}
+Target = Target or {}
 
 Target.FixOptions = function(options)
     for k, v in pairs(options) do
@@ -23,6 +23,7 @@ Target.FixOptions = function(options)
             return action(entityOrData)            
         end
         options[k].action = select
+        options[k].job = v.job or v.groups
     end
     return options
 end
