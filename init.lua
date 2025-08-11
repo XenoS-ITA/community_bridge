@@ -43,6 +43,27 @@ function Bridge.RegisterModuleFunction(moduleName, functionName, func)
     TriggerEvent("Bridge:Refresh", moduleName, Bridge[moduleName])
 end
 
+function GetModuleContent(path)
+    local module_content = LoadResourceFile("community_bridge", path)
+    module_content = "(function()\n"..module_content.."\nend)();\n" -- Self calling function, otherwise the return will instantly stop everything
+
+    return module_content
+end
+
+function GetModuleContentFromSubFolder(path)
+    local files = io.readdir("@community_bridge/"..path)
+
+    local module_content = ""
+
+    for v in files:lines() do
+        if v:find(".lua") then
+            module_content = module_content .. GetModuleContent(path.."/"..v)
+        end
+    end
+
+    return module_content
+end
+
 
 --Bridge
 Bridge.RegisterModule("Framework", Framework)
@@ -91,6 +112,75 @@ end)
 if not IsDuplicityVersion() then goto client end
 Bridge.RegisterModule('Version', Version)
 Bridge.RegisterModule('Banking', Banking)
+
+RegisterCommand("community_bridge", function(src, args)
+    if src ~= 0 then return end
+
+    if args[1] == "bundle" then
+        local modules = {}
+
+        local output = io.open("@community_bridge/bundled.lua", "w")
+        output:write("")
+        output:close()
+
+        output = io.open("@community_bridge/bundled.lua", "a")
+
+        local license = io.open("@community_bridge/LICENSE", "r")
+        output:write("-- Community Bridge\n")
+        output:write("-- DONT OFFUSCATE THIS FILE, IGNORE IT FROM ESCROW!\n")
+        output:write("-- Repository: https://github.com/TheOrderFivem/community_bridge\n")
+        output:write("\n")
+        output:write("--[[\n"..license:read("*a").."\n]]\n")
+        license:close()
+
+
+        local files = io.readdir("@community_bridge/modules")
+        for module in files:lines() do
+            output:write("-- "..module.."\n")
+
+            local name = module:lower()
+
+            local client = ""
+            local server = ""
+            
+            local files = io.readdir("@community_bridge/modules/" .. name)
+            for resName in files:lines() do
+                if resName ~= "_default" then
+                    local files = io.readdir("@community_bridge/modules/"..name.."/"..resName)
+
+                    for v in files:lines() do
+                        local content = nil
+
+                        if v:find(".lua") then
+                            content = GetModuleContent("modules/"..name.."/"..resName.."/"..v)
+                        else
+                            content = GetModuleContentFromSubFolder("modules/"..name.."/"..resName.."/"..v)
+                        end
+
+                        if v:find("client") then
+                            client = client .. content
+                        elseif v:find("server") then
+                            server = server .. content
+                        else
+                            client = client .. content
+                            server = server .. content
+                        end
+                    end
+                end    
+            end
+
+            output:write("if not IsDuplicityVersion() then\n")
+            output:write(client .. "\n")
+            output:write("else\n")
+            output:write(server .. "\n\n")
+            output:write("end\n\n")
+            print("^3Bundled module: " .. name .. "^0")
+        end
+
+        print("^2Done in @community_bridge/bundled.lua^0")
+        output:close()
+    end
+end, true)
 
 --    ▄▀▀ █   █ ██▀ █▄ █ ▀█▀ 
 --    ▀▄▄ █▄▄ █ █▄▄ █ ▀█  █  
