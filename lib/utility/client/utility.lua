@@ -3,6 +3,7 @@ local blipIDs = {}
 local spawnedPeds = {}
 
 Locales = Locales or Require('modules/locales/shared.lua')
+Point = Point or Require('lib/points/client/pointsv2.lua')
 
 ---Get the hash of a model (string or number)
 ---@param model string|number
@@ -126,7 +127,7 @@ function Utility.CreateBlip(coords, sprite, color, scale, label, shortRange, dis
     AddTextEntry(label, label)
     BeginTextCommandSetBlipName(label)
     EndTextCommandSetBlipName(blip)
-    blipIDs[tostring(blip)] = true
+    blipIDs[tostring(blip)] = blip
     return blip
 end
 
@@ -150,7 +151,7 @@ function Utility.CreateEntityBlip(entity, sprite, color, scale, label, shortRang
     AddTextEntry(label, label)
     BeginTextCommandSetBlipName(label)
     EndTextCommandSetBlipName(blip)
-    blipIDs[tostring(blip)] = true
+    blipIDs[tostring(blip)] = blip
     return blip
 end
 
@@ -158,8 +159,8 @@ end
 ---@param blip number
 ---@return boolean
 function Utility.RemoveBlip(blip)
-    if not blipIDs[tostring(blip)] then return false end
-    RemoveBlip(blip)
+    if not blipIDs[tostring(blip)] then return false, print("NO BLIP BY ID") end
+    RemoveBlip(blipIDs[tostring(blip)])
     blipIDs[tostring(blip)] = nil
     return true
 end
@@ -270,16 +271,18 @@ function Utility.HelpText(text, duration)
     EndTextCommandDisplayHelp(0, false, true, duration or 5000)
 end
 
+local doingstuff = false
+
 ---Show a floating help text in the world
 ---@param text string The text to show
 ---@param coords table The coords to show the message at
 ---@return nil
-function Utility.FloatingHelpText(text, coords)
-    AddTextEntry("community_bridge_"..text, "community_bridge_"..text)
-    SetFloatingHelpTextWorldPosition(1, coords.x, coords.y, coords.z)
+function Utility.FloatingHelpText(text, coords) 
+    AddTextEntry("community_bridge_"..text, text)
+    SetFloatingHelpTextWorldPosition(1, coords.x, coords.y, coords.z)    
     SetFloatingHelpTextStyle(1, 1, 2, -1, 3, 0)
     BeginTextCommandDisplayHelp("community_bridge_"..text)
-    EndTextCommandDisplayHelp(2, false, false, -1)
+    EndTextCommandDisplayHelp(2, false, false, 100)
 end
 
 ---Draw 3D help text in the world
@@ -408,8 +411,8 @@ function Utility.GetClosestVehicle(coords, distanceScope, includePlayerVeh)
 end
 
 -- Deprecated point functions (no changes)
-function Utility.RegisterPoint(pointID, pointCoords, pointDistance, _onEnter, _onExit, _nearby)
-    return Point.Register(pointID, pointCoords, pointDistance, nil, _onEnter, _onExit, _nearby)
+function Utility.RegisterPoint(pointID, pointCoords, pointDistance, _onEnter, _onExit)
+    return Point.Register(pointID, pointCoords, pointDistance, nil, _onEnter, _onExit)
 end
 
 function Utility.GetPointById(pointID)
